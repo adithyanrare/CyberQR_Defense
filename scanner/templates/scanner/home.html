@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberQR Defense — QR Phishing Detection System</title>
+
+    <style>
+        /* ═══════════════════════════════════════════════════════════════════
+           CYBERQR DEFENSE — Homepage Styles
+           Theme: Dark Cybersecurity / Matrix / Terminal Aesthetic
+           ═══════════════════════════════════════════════════════════════════ */
+
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --bg-dark:      #ffffff;
+            --bg-panel:     rgba(0, 255, 170, 0.04);
+            --bg-panel2:    rgba(240, 250, 245, 0.95);
+            --accent:       #00aa77;
+            --accent2:      #0099dd;
+            --danger:       #e60030;
+            --text-main:    #1a3a2a;
+            --text-dim:     #4a6a5a;
+            --border:       rgba(0, 170, 119, 0.3);
+            --border-bright:rgba(0, 170, 119, 0.7);
+            --glow:         0 0 15px rgba(0, 170, 119, 0.25);
+            --glow-bright:  0 0 30px rgba(0, 170, 119, 0.5);
+            --font-mono:    'Share Tech Mono', monospace;
+            --font-main:    'Inter', sans-serif;
+        }
+
+        /* Dark mode theme */
+        html[data-theme="dark"] {
+            --bg-dark:      #0a0f14;
+            --bg-panel:     rgba(20, 30, 25, 0.95);
+            --bg-panel2:    rgba(15, 25, 20, 0.95);
+            --text-main:    #e0f0e8;
+            --text-dim:     #a0c0b0;
+            --border:       rgba(0, 170, 119, 0.4);
+            --border-bright:rgba(0, 170, 119, 0.8);
+            --glow:         0 0 20px rgba(0, 170, 119, 0.4);
+            --glow-bright:  0 0 40px rgba(0, 170, 119, 0.6);
+        }
+
+        /* Smooth theme transitions */
+        html {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Dark mode grid pattern */
+        html[data-theme="dark"] body::before {
+            background-image:
+                linear-gradient(rgba(0, 170, 119, 0.15) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 170, 119, 0.15) 1px, transparent 1px);
+        }
+
+        /* Prevent loading overlay from showing on back/forward navigation */
+        window.addEventListener('pageshow', function(event) {
+            // If page is shown from cache (back button), hide loading overlay
+            if (event.persisted) {
+                document.getElementById('loadingOverlay').classList.remove('show');
+                document.getElementById('progressContainer').classList.remove('show');
+            }
+        });
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+
+        /* ── Body & Background ── */
+        body {
+            font-family: var(--font-main);
+            background: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* ── Grid background pattern ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 170, 119, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 170, 119, 0.08) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Note: Scan line animation removed as per user request */
+
+        /* ── Page wrapper ── */
+        .page-wrapper {
+            position: relative;
+            z-index: 2;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px 60px;
+        }
+
+        /* ── Header ── */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header-badge {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--accent);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            border: 1px solid var(--border);
+            padding: 6px 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .header-badge::before,
+        .header-badge::after {
+            content: '◆';
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 8px;
+            color: var(--accent);
+        }
+        .header-badge::before { left: -12px; }
+        .header-badge::after  { right: -12px; }
+
+        .header h1 {
+            font-family: var(--font-main);
+            font-size: clamp(2.2rem, 6vw, 3.5rem);
+            font-weight: 700;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            line-height: 1.2;
+            color: #1a3a2a;
+            text-shadow: 0 0 20px rgba(0,170,119,0.3);
+        }
+
+        .header h1 span {
+            color: var(--accent);
+        }
+
+        .header .subtitle {
+            font-family: var(--font-main);
+            font-size: 15px;
+            color: var(--text-dim);
+            letter-spacing: 2px;
+            margin-top: 12px;
+            font-weight: 400;
+            color: #2a4a3a;
+        }
+
+        /* ── Status bar ── */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 16px;
+            color: #3a5a4a;
+        }
+
+        /* ── Theme Toggle Styles ── */
+        .theme-toggle {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+        }
+
+        .theme-btn {
+            background: var(--bg-panel2);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .theme-btn:hover {
+            border-color: var(--border-bright);
+            box-shadow: var(--glow);
+            transform: scale(1.05);
+        }
+
+        .theme-btn .sun { 
+            opacity: 1; 
+            transition: opacity 0.3s ease; 
+        }
+        .theme-btn .moon { 
+            opacity: 0; 
+            transition: opacity 0.3s ease; 
+        }
+
+        .theme-btn.dark .sun { opacity: 0; }
+        .theme-btn.dark .moon { opacity: 1; }
+
+        .status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        /* ── Main scanner panel ── */
+        .scanner-panel {
+            width: 100%;
+            max-width: 720px;
+            background: var(--bg-panel2);
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scanner-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), var(--accent), transparent);
+        }
+
+        /* Panel title bar */
+        .panel-titlebar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0,170,119,0.06);
+        }
+
+        .panel-titlebar-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--accent);
+        }
+
+        .panel-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+        }
+        .panel-dot.red    { background: #ff3860; }
+        .panel-dot.yellow { background: #ffdd57; }
+        .panel-dot.green  { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+        .panel-dots { display: flex; gap: 6px; }
+
+        .panel-body { padding: 30px; }
+
+        /* ── Tabs ── */
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 28px;
+            border: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-family: var(--font-main);
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab-btn.active {
+            background: rgba(0,170,119,0.1);
+            color: var(--accent);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 2px;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        .tab-btn:hover:not(.active) {
+            color: var(--text-main);
+            background: rgba(0,0,0,0.03);
+        }
+
+        /* ── Tab content ── */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* ── Form ── */
+        form { width: 100%; }
+
+        /* ── QR Drop Zone ── */
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 0;
+            padding: 50px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            background: rgba(0,170,119,0.03);
+            margin-bottom: 20px;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(0,170,119,0.08);
+            box-shadow: var(--glow);
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .drop-icon {
+            font-size: 48px;
+            display: block;
+            margin-bottom: 16px;
+            filter: drop-shadow(0 0 10px var(--accent));
+        }
+
+        .drop-zone h3 {
+            font-family: var(--font-main);
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .drop-zone p {
+            font-family: var(--font-main);
+            font-size: 14px;
+            color: #3a5a4a;
+            line-height: 1.5;
+        }
+
+        .drop-zone .file-name {
+            margin-top: 12px;
+            font-family: var(--font-main);
+            font-size: 13px;
+            color: var(--accent2);
+            font-weight: 500;
+        }
+
+        /* ── Corner decorations ── */
+        .drop-zone::before,
+        .drop-zone::after {
+            content: '';
+            position: absolute;
+            width: 20px; height: 20px;
+        }
+        .drop-zone::before {
+            top: 8px; left: 8px;
+            border-top: 2px solid var(--accent);
+            border-left: 2px solid var(--accent);
+        }
+        .drop-zone::after {
+            bottom: 8px; right: 8px;
+            border-bottom: 2px solid var(--accent);
+            border-right: 2px solid var(--accent);
+        }
+
+        /* ── URL Input ── */
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--accent);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .url-input-wrapper {
+            position: relative;
+        }
+
+        .url-input-wrapper .url-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+        }
+
+        input[type="url"],
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 14px 14px 42px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s ease;
+            font-weight: 400;
+        }
+
+        input[type="url"]:focus,
+        input[type="text"]:focus {
+            border-color: var(--accent);
+            box-shadow: var(--glow);
+            background: rgba(0,170,119,0.05);
+        }
+
+        input[type="url"]::placeholder,
+        input[type="text"]::placeholder {
+            color: var(--text-dim);
+        }
+
+        /* ── Scan Button ── */
+        .scan-btn {
+            width: 100%;
+            padding: 16px;
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-family: var(--font-main);
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            margin-top: 8px;
+        }
+
+        .scan-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0,255,170,0.2), transparent);
+            transition: left 0.4s ease;
+        }
+
+        .scan-btn:hover {
+            background: rgba(0,170,119,0.1);
+            box-shadow: var(--glow-bright), inset 0 0 20px rgba(0,170,119,0.1);
+            color: #1a3a2a;
+        }
+
+        .scan-btn:hover::before {
+            left: 100%;
+        }
+
+        .scan-btn:active {
+            transform: scale(0.99);
+        }
+
+        /* ── Loading Overlay ── */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(3, 10, 14, 0.95);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .scanner-ring {
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .scanner-ring::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: var(--accent);
+            border-right-color: var(--accent2);
+            animation: spin 1s linear infinite;
+        }
+
+        .scanner-ring::after {
+            content: '🔍';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 36px;
+            filter: drop-shadow(0 0 10px var(--accent));
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-text {
+            font-family: var(--font-main);
+            font-size: 15px;
+            color: var(--accent);
+            letter-spacing: 3px;
+            font-weight: 500;
+        }
+
+        .loading-steps {
+            margin-top: 20px;
+            font-family: var(--font-main);
+            font-size: 13px;
+            color: var(--text-dim);
+            text-align: center;
+            line-height: 2;
+        }
+
+        .loading-steps span {
+            display: block;
+            animation: fadeInStep 0.5s ease forwards;
+            opacity: 0;
+        }
+
+        .loading-steps span:nth-child(1) { animation-delay: 0.3s; }
+        .loading-steps span:nth-child(2) { animation-delay: 0.9s; }
+        .loading-steps span:nth-child(3) { animation-delay: 1.5s; }
+        .loading-steps span:nth-child(4) { animation-delay: 2.1s; }
+
+        @keyframes fadeInStep {
+            from { opacity: 0; transform: translateX(-10px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+
+        /* ── Progress bar under button ── */
+        .progress-bar-container {
+            margin-top: 16px;
+            display: none;
+        }
+
+        .progress-bar-container.show { display: block; }
+
+        .progress-track {
+            height: 3px;
+            background: var(--border);
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            box-shadow: 0 0 10px var(--accent);
+            animation: progressAnim 2.5s ease-in-out forwards;
+        }
+
+        @keyframes progressAnim {
+            0%   { width: 0%; }
+            60%  { width: 80%; }
+            100% { width: 100%; }
+        }
+
+        /* ── Error message ── */
+        .error-box {
+            background: rgba(230, 0, 48, 0.08);
+            border: 1px solid rgba(230, 0, 48, 0.35);
+            color: #c00028;
+            padding: 14px 18px;
+            font-family: var(--font-main);
+            font-size: 14px;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        /* ── Info cards below panel ── */
+        .info-cards {
+            display: flex;
+            gap: 16px;
+            max-width: 720px;
+            width: 100%;
+            margin-top: 30px;
+        }
+
+        .info-card {
+            flex: 1;
+            padding: 20px;
+            border: 1px solid var(--border);
+            background: rgba(240,250,245,0.8);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .info-card:hover {
+            border-color: var(--accent);
+            background: rgba(0,170,119,0.06);
+            transform: translateY(-2px);
+        }
+
+        .info-card .icon { font-size: 28px; margin-bottom: 10px; }
+        .info-card h4 {
+            font-family: var(--font-main);
+            font-size: 14px;
+            letter-spacing: 2px;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .info-card p {
+            font-family: var(--font-main);
+            font-size: 13px;
+            color: #3a5a4a;
+            line-height: 1.6;
+            font-weight: 400;
+        }
+
+        /* ── Footer ── */
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-family: var(--font-main);
+            font-size: 13px;
+            color: #4a6a5a;
+            letter-spacing: 1px;
+            font-weight: 400;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 600px) {
+            .info-cards { flex-direction: column; }
+            .panel-body { padding: 20px; }
+            .header h1 { letter-spacing: 3px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ╔══════════════════════════════════════════════╗
+         ║         LOADING OVERLAY (shown on submit)    ║
+         ╚══════════════════════════════════════════════╝ -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="scanner-ring"></div>
+        <div class="loading-text">▶ SCANNING IN PROGRESS...</div>
+        <div class="loading-steps">
+            <span>[ ✔ ] Initializing detection engine...</span>
+            <span>[ ✔ ] Extracting URL from QR code...</span>
+            <span>[ ✔ ] Running phishing analysis rules...</span>
+            <span>[ ✔ ] Calculating risk score...</span>
+        </div>
+    </div>
+
+    <!-- ╔══════════════════════════════════════════════╗
+         ║                 MAIN PAGE                    ║
+         ╚══════════════════════════════════════════════╝ -->
+    <div class="page-wrapper">
+
+        <!-- ── Header ── -->
+        <header class="header">
+            <div class="header-badge">Cybersecurity Defense System v2.4</div>
+            <h1>Cyber<span>QR</span> Defense</h1>
+            <p class="subtitle">QR Code & URL Phishing Detection System</p>
+            <div class="status-bar">
+                <span>SYSTEM ONLINE</span>
+                <span>|</span>
+                <span>THREAT DETECTION: ACTIVE</span>
+                <span>|</span>
+                <span id="clock"></span>
+            </div>
+        
+        </header>
+
+        <!-- ── Scanner Panel ── -->
+        <div class="scanner-panel">
+
+            <!-- Title bar (like a terminal window) -->
+            <div class="panel-titlebar">
+        
+                <div class="panel-titlebar-left">
+                    <span>⬡</span>
+                    <span>CYBERQR_SCANNER — READY</span>
+                </div>
+                <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);">PID:4096</div>
+            </div>
+
+            <div class="panel-body">
+
+                <!-- Error box (shown only if there's an error) -->
+                {% if error %}
+                <div class="error-box">
+                    ⚠ ERROR: {{ error }}
+                </div>
+                {% endif %}
+
+                <!-- ── Tabs: QR Code | URL ── -->
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('qr', this)" type="button">
+                        📷 QR Code Image
+                    </button>
+                    <button class="tab-btn" onclick="switchTab('url', this)" type="button">
+                        🔗 Paste URL
+                    </button>
+                </div>
+
+                <!-- ── Form ── -->
+                <form method="POST" action="{% url 'scan' %}" enctype="multipart/form-data" id="scanForm">
+                    {% csrf_token %}
+
+                    <!-- ── TAB 1: QR Upload ── -->
+                    <div class="tab-content active" id="tab-qr">
+                        <div class="drop-zone" id="dropZone">
+                            <input type="file"
+                                   name="qr_image"
+                                   id="qrFileInput"
+                                   accept="image/*"
+                                   onchange="handleFileSelect(this)">
+                            <span class="drop-icon">⬡</span>
+                            <h3>Drop QR Code Here</h3>
+                            <p>or click to browse files</p>
+                            <p>Supported: PNG, JPG, JPEG, GIF, BMP, WebP</p>
+                            <div class="file-name" id="fileName"></div>
+                        </div>
+                    </div>
+
+                    <!-- ── TAB 2: URL Input ── -->
+                    <div class="tab-content" id="tab-url">
+                        <div class="input-group">
+                            <label class="input-label" for="urlInput">
+                                ▶ Enter URL to analyze
+                            </label>
+                            <div class="url-input-wrapper">
+                                <span class="url-icon">🔗</span>
+                                <input type="text"
+                                       name="url"
+                                       id="urlInput"
+                                       placeholder="https://example.com or paste any suspicious URL..."
+                                       autocomplete="off"
+                                       spellcheck="false">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── Analyze Button ── -->
+                    <button type="submit" class="scan-btn" id="scanBtn" onclick="startScan()">
+                        ⬡ &nbsp; ANALYZE FOR PHISHING &nbsp; ⬡
+                    </button>
+
+                    <!-- ── Progress Bar (shows on click) ── -->
+                    <div class="progress-bar-container" id="progressContainer">
+                        <div class="progress-track">
+                            <div class="progress-fill"></div>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+        <!-- ── Info Cards ── -->
+        <div class="info-cards">
+            <div class="info-card">
+                <div class="icon"></div>
+                <h4>QR Scanning</h4>
+                <p>Upload any QR code image. Our engine decodes it and extracts hidden URLs for analysis.</p>
+            </div>
+            <div class="info-card">
+                <div class="icon">🛡</div>
+                <h4>7-Rule Engine</h4>
+                <p>Checks IP addresses, HTTPS, subdomains, keywords, URL length, UPI params & domain structure.</p>
+            </div>
+            <div class="info-card">
+                <div class="icon"></div>
+                <h4>Risk Scoring</h4>
+                <p>Risk score 0–100. Safe ≤30, Suspicious 31–60, High Risk ≥61. Full analysis report included.</p>
+            </div>
+        </div>
+
+        <!-- ── Footer ── -->
+        <footer class="footer">
+            <p>CyberQR Defense &copy; 2026</p>
+            
+        </footer>
+
+    </div><!-- end page-wrapper -->
+
+
+    <script>
+        // ════════════════════════════════════════════════════════════════
+        // JavaScript — CyberQR Defense Homepage
+        // ════════════════════════════════════════════════════════════════
+
+        // Live clock in header
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString();
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // ── Tab switching ──────────────────────────────────────────────
+        function switchTab(tabName, btn) {
+            // Hide all tabs and deactivate all buttons
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+            // Show selected tab and activate button
+            document.getElementById('tab-' + tabName).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        // ── QR File select: show file name ────────────────────────────
+        function handleFileSelect(input) {
+            const fileNameEl = document.getElementById('fileName');
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                fileNameEl.textContent = '✔ Selected: ' + file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+                document.getElementById('dropZone').style.borderColor = 'var(--accent)';
+                document.getElementById('dropZone').style.background = 'rgba(0,255,170,0.06)';
+            }
+        }
+
+        // ── Drag and drop support ──────────────────────────────────────
+        const dropZone = document.getElementById('dropZone');
+
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', function() {
+            this.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('qrFileInput').files = files;
+                handleFileSelect(document.getElementById('qrFileInput'));
+            }
+        });
+
+        // ── Show loading animation on form submit ──────────────────────
+        function startScan() {
+            // Small delay to let the DOM update
+            setTimeout(function() {
+                document.getElementById('loadingOverlay').classList.add('show');
+                document.getElementById('progressContainer').classList.add('show');
+            }, 100);
+        }
+
+        // ── Dark Mode Toggle ───────────────────────────────────────────
+        (function initThemeToggle() {
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                const html = document.documentElement;
+                const currentTheme = localStorage.getItem('theme') || 'light';
+                
+                // Apply saved theme on load
+                html.setAttribute('data-theme', currentTheme);
+                if (currentTheme === 'dark') {
+                    themeToggle.classList.add('dark');
+                }
+                
+                // Toggle handler
+                themeToggle.addEventListener('click', () => {
+                    const isDark = html.getAttribute('data-theme') === 'dark';
+                    const newTheme = isDark ? 'light' : 'dark';
+                    
+                    html.setAttribute('data-theme', newTheme);
+                    localStorage.setItem('theme', newTheme);
+                    themeToggle.classList.toggle('dark');
+                });
+            }
+        })();
+
+        // Auto-submit validation
+        document.getElementById('scanForm').addEventListener('submit', function(e) {
+            const qrFile = document.getElementById('qrFileInput').files[0];
+            const urlVal = document.getElementById('urlInput').value.trim();
+            const activeTab = document.querySelector('.tab-content.active').id;
+
+            if (activeTab === 'tab-qr' && !qrFile) {
+                e.preventDefault();
+                alert('Please select a QR code image to upload.');
+                return;
+            }
+
+            if (activeTab === 'tab-url' && !urlVal) {
+                e.preventDefault();
+                alert('Please enter a URL to analyze.');
+                return;
+            }
+
+            // If URL tab is active but file tab was used, ensure the right field is submitted
+        });
+    </script>
+
+</body>
+</html>
