@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CyberQR Defense — QR Phishing Detection System</title>
+    
+    <!-- jsQR for live QR scanning -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
     <style>
         /* ═══════════════════════════════════════════════════════════════════
@@ -352,13 +355,12 @@
             box-shadow: var(--glow);
         }
 
-        .drop-zone input[type="file"] {
-            position: absolute;
-            inset: 0;
-            opacity: 0;
-            cursor: pointer;
-            width: 100%;
-            height: 100%;
+        .drop-zone {
+            cursor: default;
+        }
+        
+        .drop-zone .button-row button:hover {
+            transform: none !important;
         }
 
         .drop-icon {
@@ -684,6 +686,62 @@
             .info-cards { flex-direction: column; }
             .panel-body { padding: 20px; }
             .header h1 { letter-spacing: 3px; }
+            
+            .drop-zone .button-row {
+                flex-direction: column !important;
+                gap: 8px !important;
+            }
+            .drop-zone .button-row button {
+                min-width: 120px !important;
+                font-size: 12px !important;
+            }
+        }
+        
+        .drop-zone .button-row {
+            display: flex !important;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 24px;
+            padding-top: 16px;
+        }
+        .drop-zone .button-row button {
+            flex: 1;
+            min-width: 140px;
+            padding: 10px 16px;
+            font-size: 13px;
+        }
+
+        /* Live scanner fit & animation */
+        .drop-zone.scanning {
+            position: relative;
+            overflow: hidden;
+            padding: 0 !important;
+            min-height: 420px;
+            height: 420px;
+        }
+        .drop-zone.scanning > *:not(#qrVideo):not(#qrCanvas):not(#qrScanOverlay) {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #qrVideo, #qrCanvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 0;
+        }
+
+        @keyframes scanLine {
+            0% { top: 10px; }
+            100% { top: calc(100% - 13px); }
+        }
+
+        @media (max-width: 600px) {
+            .drop-zone.scanning {
+                min-height: 350px;
+                height: 350px;
+            }
         }
     </style>
 </head>
@@ -762,16 +820,42 @@
                     <!-- ── TAB 1: QR Upload ── -->
                     <div class="tab-content active" id="tab-qr">
                         <div class="drop-zone" id="dropZone">
-                            <input type="file"
-                                   name="qr_image"
-                                   id="qrFileInput"
-                                   accept="image/*"
-                                   onchange="handleFileSelect(this)">
-                            <span class="drop-icon">⬡</span>
-                            <h3>Drop QR Code Here</h3>
-                            <p>or click to browse files</p>
-                            <p>Supported: PNG, JPG, JPEG, GIF, BMP, WebP</p>
+                            <input type="file" name="qr_image" id="qrFileInput" accept="image/*" style="display: none;" onchange="handleFileSelect(this)">
+                            
+                            <!-- Live QR scanner elements (hidden) -->
+                            <video id="qrVideo" style="display: none; width: 100%; height: 300px; object-fit: cover;"></video>
+                            <canvas id="qrCanvas" style="display: none; width: 100%; height: 300px;"></canvas>
+                            <div id="qrScanOverlay" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: transparent; z-index: 10; pointer-events: none;">
+                                <!-- Scan frame -->
+                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 250px; height: 250px; border: 3px solid var(--accent); border-radius: 12px; box-shadow: 0 0 20px var(--glow-bright);">
+                                    <div style="position: absolute; top: 10px; left: 10px; right: 10px; height: 3px; background: linear-gradient(90deg, var(--accent), var(--accent2)); animation: scanLine 2s linear infinite;"></div>
+                                </div>
+                                <!-- Status text -->
+                                <div id="scanStatus" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: var(--accent); font-size: 16px; font-weight: bold;">
+                                    
+                                </div>
+                                <!-- Detected URL overlay -->
+                                <div id="detectedUrlOverlay" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 12px; text-align: center; max-width: 90%; font-size: 14px; z-index: 20;">
+                                    <div style="margin-bottom: 12px; font-weight: bold;">QR Detected!</div>
+                                    <div id="detectedUrl" style="word-break: break-all; margin-bottom: 12px;"></div>
+                                    <div style="color: var(--accent);">Analyzing phishing risk...</div>
+                                </div>
+                            </div>
+ 
+                             <span class="drop-icon">⬡</span>
+                             <h3>Drop QR Code Here</h3>
+                             <p>or use buttons below</p>
+                            <p>Supported: PNG, JPG, JPEG, GIF, BMP, WebP, Camera</p>
                             <div class="file-name" id="fileName"></div>
+                            <!-- Browse & Camera buttons inside drop-zone -->
+                            <div class="button-row">
+                                <button type="button" class="scan-btn" onclick="browseFiles()">
+                                    📁 Browse
+                                </button>
+                                <button type="button" class="scan-btn" onclick="startLiveScan()">
+                                    📷 Live Scanner
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -864,13 +948,120 @@
         // ── QR File select: show file name ────────────────────────────
         function handleFileSelect(input) {
             const fileNameEl = document.getElementById('fileName');
+            const dropZone = document.getElementById('dropZone');
             if (input.files && input.files[0]) {
                 const file = input.files[0];
                 fileNameEl.textContent = '✔ Selected: ' + file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
-                document.getElementById('dropZone').style.borderColor = 'var(--accent)';
-                document.getElementById('dropZone').style.background = 'rgba(0,255,170,0.06)';
+                dropZone.style.borderColor = 'var(--accent)';
+                dropZone.style.background = 'rgba(0,255,170,0.06)';
             }
         }
+
+        // Browse onclick
+        function browseFiles() {
+            const qrFileInput = document.getElementById('qrFileInput');
+            const fileNameEl = document.getElementById('fileName');
+            const dropZone = document.getElementById('dropZone');
+            qrFileInput.value = '';
+            fileNameEl.textContent = '';
+            dropZone.style.borderColor = '';
+            dropZone.style.background = '';
+            qrFileInput.click();
+        }
+
+        // Live QR Scanner
+        let scanning = false;
+        let animationId = null;
+
+        async function startLiveScan() {
+            const video = document.getElementById('qrVideo');
+            const canvas = document.getElementById('qrCanvas');
+            const overlay = document.getElementById('qrScanOverlay');
+            const dropZone = document.getElementById('dropZone');
+            const status = document.getElementById('scanStatus');
+            
+            // Clear previous
+            document.getElementById('qrFileInput').value = '';
+            document.getElementById('fileName').textContent = '';
+            dropZone.classList.add('scanning');
+            overlay.style.display = 'block';
+            video.style.display = 'block';
+            canvas.style.display = 'block';
+            
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                video.srcObject = stream;
+                video.play();
+                
+                scanning = true;
+                scanLoop();
+            } catch (err) {
+                dropZone.classList.remove('scanning');
+                overlay.style.display = 'none';
+                video.style.display = 'none';
+                canvas.style.display = 'none';
+                alert('Camera access denied. Allow permission and try again.');
+            }
+        }
+
+        function scanLoop() {
+            if (!scanning) return;
+            
+            const video = document.getElementById('qrVideo');
+            const canvas = document.getElementById('qrCanvas');
+            const ctx = canvas.getContext('2d');
+            const status = document.getElementById('scanStatus');
+            
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                if (code) {
+                    const url = code.data.trim();
+                    if (url) {
+                        // Show extracted URL for 3s
+                        const detectedOverlay = document.getElementById('detectedUrlOverlay');
+                        document.getElementById('detectedUrl').textContent = url;
+                        detectedOverlay.style.display = 'block';
+                        if ('vibrate' in navigator) navigator.vibrate(200);
+                        setTimeout(() => {
+                            detectedOverlay.style.display = 'none';
+                            stopLiveScan();
+                            document.getElementById('urlInput').value = url;
+                            document.getElementById('scanForm').submit();
+                        }, 2000);
+                        return;
+                    }
+                }
+            }
+            
+            animationId = requestAnimationFrame(scanLoop);
+        }
+
+        function stopLiveScan() {
+            scanning = false;
+            if (animationId) cancelAnimationFrame(animationId);
+            
+            const video = document.getElementById('qrVideo');
+            const overlay = document.getElementById('qrScanOverlay');
+            const canvas = document.getElementById('qrCanvas');
+            const dropZone = document.getElementById('dropZone');
+            
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+            
+            video.style.display = 'none';
+            canvas.style.display = 'none';
+            overlay.style.display = 'none';
+            dropZone.classList.remove('scanning');
+            document.getElementById('scanStatus').textContent = '🔍 Point at QR code';
+        }
+
 
         // ── Drag and drop support ──────────────────────────────────────
         const dropZone = document.getElementById('dropZone');
@@ -930,13 +1121,15 @@
 
         // Auto-submit validation
         document.getElementById('scanForm').addEventListener('submit', function(e) {
-            const qrFile = document.getElementById('qrFileInput').files[0];
+            const qrFileInput = document.getElementById('qrFileInput');
+            const cameraInput = document.getElementById('cameraInput');
+            const qrFile = qrFileInput.files[0] || cameraInput.files[0];
             const urlVal = document.getElementById('urlInput').value.trim();
             const activeTab = document.querySelector('.tab-content.active').id;
 
             if (activeTab === 'tab-qr' && !qrFile) {
                 e.preventDefault();
-                alert('Please select a QR code image to upload.');
+                alert('Please select a QR code image or take a photo.');
                 return;
             }
 

@@ -207,8 +207,8 @@ def analyze_url(url: str) -> dict:
         checks.append({'feature': 'TLD Check', 'result': tld or 'None', 'risk': 'SAFE', 'icon': '✔', 'description': 'Common TLD.'})
         logs.append("TLD check: SAFE")
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # RULE 8: UPI Payment Link
+# ══════════════════════════════════════════════════════════════════════════
+    # RULE 8: UPI Payment Link (Neutral detection - no risk penalty for legit UPI)
     # ══════════════════════════════════════════════════════════════════════════
     logs.append("Checking for UPI parameters...")
     query_params = parse_qs(query_str)
@@ -216,12 +216,25 @@ def analyze_url(url: str) -> dict:
     is_upi_link = url.startswith('upi://') or bool(found_upi)
 
     if is_upi_link:
-        score += 25
+        # NO risk score added - legit UPI is SAFE unless other red flags
         result['upi_detected'] = True
-        checks.append({'feature': 'UPI Parameters', 'result': f'Detected: {", ".join(found_upi) if found_upi else "upi://"}', 'risk': 'SUSPICIOUS', 'icon': '⚠', 'description': 'UPI link — always verify payee manually.'})
-        logs.append(f"[WARNING] UPI link detected (+25 points)")
+        
+        # Parse UPI details (decode URL params)
+        query_params = parse_qs(query_str, keep_blank_values=True)
+        upi_details = {
+            'vpa': query_params.get('pa', ['N/A'])[0] if query_params.get('pa') else 'N/A',
+            'payee_name': query_params.get('pn', ['N/A'])[0] if query_params.get('pn') else 'N/A',
+            'amount': query_params.get('am', ['N/A'])[0] if query_params.get('am') else 'N/A',
+            'currency': query_params.get('cu', ['INR'])[0] if query_params.get('cu') else 'INR',
+            'note': query_params.get('tn', ['N/A'])[0] if query_params.get('tn') else 'N/A',
+        }
+        result['upi_details'] = upi_details
+        
+        result_str = f"VPA: {upi_details['vpa'][:20]}{'...' if len(upi_details['vpa']) > 20 else ''}"
+        checks.append({'feature': 'UPI Payment Link', 'result': result_str, 'risk': 'INFO', 'icon': 'ℹ', 'description': 'Legitimate UPI payment request. Verify payee details before authorizing.'})
+        logs.append(f"[INFO] Legit UPI link detected (no risk added): {result_str}")
     else:
-        checks.append({'feature': 'UPI Parameters', 'result': 'None', 'risk': 'SAFE', 'icon': '✔', 'description': 'No UPI parameters.'})
+        checks.append({'feature': 'UPI Parameters', 'result': 'None', 'risk': 'SAFE', 'icon': '✔', 'description': 'No UPI payment parameters found.'})
         logs.append("UPI check: SAFE")
 
     # ══════════════════════════════════════════════════════════════════════════

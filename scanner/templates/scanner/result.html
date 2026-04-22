@@ -333,7 +333,8 @@
             font-weight: 600;
         }
 
-        .risk-badge.SAFE       { color: #00aa77; border-color: rgba(0,170,119,0.4); background: rgba(0,170,119,0.08); }
+.risk-badge.SAFE       { color: #00aa77; border-color: rgba(0,170,119,0.4); background: rgba(0,170,119,0.08); }
+        .risk-badge.INFO       { color: #0099dd; border-color: rgba(0,153,221,0.4); background: rgba(0,153,221,0.08); }
         .risk-badge.SUSPICIOUS { color: #cc9900; border-color: rgba(204,170,0,0.4); background: rgba(204,170,0,0.08); }
         .risk-badge.DANGEROUS  { color: #e60030; border-color: rgba(230,0,48,0.4);  background: rgba(230,0,48,0.08);  }
 
@@ -523,22 +524,35 @@
          SECTION 1: VERDICT BANNER
          ══════════════════════════════════════════════════════════════════ -->
 
+{% if upi_detected %}
+        <!-- UPI Verdict - Primary for UPI (always first) -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-title">⬡ UPI Payment Analysis</span>
+            </div>
+            <div class="verdict-banner safe">
+                <span class="verdict-icon">🧾</span>
+                <div class="verdict-text safe">UPI PAYMENT REQUEST</div>
+                <p style="margin-top:14px;font-family:var(--font-main);font-size:14px;color:#006644;font-weight:400;line-height:1.6;">
+                    <strong>Verify these details before paying:</strong><br>Pay to {{ upi_details.payee_name }} ({{ upi_details.vpa }}) 
+                    {% if upi_details.amount != 'N/A' %} | Amount: ₹{{ upi_details.amount }}{% endif %}
+                </p>
+            </div>
+        </div>
+{% else %}
     {% if risk_level == "SAFE" %}
-        {% with css_class="safe" icon="✅" label="SAFE WEBSITE" %}
         <div class="section">
             <div class="section-header">
                 <span class="section-title">⬡ Final Security Verdict</span>
             </div>
             <div class="verdict-banner safe">
-                <span class="verdict-icon">{{ icon }}</span>
-                <div class="verdict-text safe">{{ label }}</div>
+                <span class="verdict-icon">✅</span>
+                <div class="verdict-text safe">SAFE WEBSITE</div>
                 <p style="margin-top:14px;font-family:var(--font-main);font-size:14px;color:var(--text-dim);font-weight:400;line-height:1.6;">
                     This URL passed all security checks. Exercise normal caution online.
                 </p>
             </div>
         </div>
-        {% endwith %}
-
     {% elif risk_level == "SUSPICIOUS" %}
         <div class="section">
             <div class="section-header">
@@ -552,7 +566,6 @@
                 </p>
             </div>
         </div>
-
     {% else %}
         <div class="section">
             <div class="section-header">
@@ -567,12 +580,37 @@
             </div>
         </div>
     {% endif %}
+{% endif %}
 
-    <!-- ── UPI Alert (only shown if UPI link detected) ── -->
+    <!-- ── UPI Payment Request (Green/Info style for legit UPI) ── -->
     {% if upi_detected %}
-    <div class="upi-alert">
-        ⚠ UPI PAYMENT LINK DETECTED — Always verify the payee address (pa=) before making any payment.
-        Fraudsters use QR codes to redirect payments to their own UPI addresses.
+    <div class="upi-box" style="background: linear-gradient(135deg, rgba(0,170,119,0.15), rgba(0,255,170,0.08)); border: 2px solid rgba(0,170,119,0.4); padding: 20px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,170,119,0.2);">
+        <h4 style="margin:0 0 12px 0; font-family: var(--font-main); font-size:16px; color:#00aa77; font-weight:600; letter-spacing:1px;">🧾 UPI Payment Request</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
+            <div>
+                <span style="color:#006644; font-weight:500;">VPA (Payee ID):</span><br>
+                <span style="background:rgba(0,0,0,0.1); padding:4px 8px; border-radius:4px; font-family:var(--font-mono);">{{ upi_details.vpa }}</span>
+            </div>
+            <div>
+                <span style="color:#006644; font-weight:500;">Payee Name:</span><br>
+                {{ upi_details.payee_name }}
+            </div>
+            {% if upi_details.amount != 'N/A' %}
+            <div>
+                <span style="color:#006644; font-weight:500;">Amount:</span><br>
+                ₹ {{ upi_details.amount }} {{ upi_details.currency }}
+            </div>
+            {% endif %}
+            {% if upi_details.note != 'N/A' %}
+            <div>
+                <span style="color:#006644; font-weight:500;">Note:</span><br>
+                {{ upi_details.note }}
+            </div>
+            {% endif %}
+        </div>
+        <div style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(0,170,119,0.3); font-size:12px; color:#006644; font-weight:500;">
+            ✅ <strong>Legitimate UPI link. Double-check VPA, name & amount match your expected payee before authorizing payment in UPI app!</strong>
+        </div>
     </div>
     {% endif %}
 
@@ -590,7 +628,7 @@
             <div class="section-body">
 
                 <div class="summary-item">
-                    <span class="summary-label">Scanned URL</span>
+                    <span class="summary-label">{% if upi_detected %}Payment Link{% else %}Scanned URL{% endif %}</span>
                     <span class="summary-value" title="{{ url }}">
                         {{ url|truncatechars:60 }}
                     </span>
@@ -645,7 +683,7 @@
                         ">
                         {{ risk_score }}
                     </div>
-                    <div class="score-label">/ 100 — RISK SCORE</div>
+        <div class="score-label">{% if upi_detected %}/ 100 — PHISHING RISK{% else %}/ 100 — RISK SCORE{% endif %}</div>
 
                     <div class="score-track">
                         <div class="score-fill

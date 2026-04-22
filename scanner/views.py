@@ -84,6 +84,7 @@ def scan(request):
         'logs'            : analysis['logs'],
         'recommendations' : recommendations,
         'upi_detected'    : analysis['upi_detected'],
+        'upi_details'     : analysis.get('upi_details', {}),
         'qr_decode_status': qr_decode_status,
         'scan_time'       : timezone.now().strftime('%Y-%m-%d %H:%M:%S UTC'),
         'risk_score_pct'  : analysis['risk_score'],
