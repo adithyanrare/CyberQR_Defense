@@ -91,8 +91,8 @@
         <h4 style="margin:0 0 12px 0; font-family: var(--font-main); font-size:16px; color:#00aa77; font-weight:600; letter-spacing:1px;">🧾 UPI Payment Request</h4>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
             <div>
-                <span style="color:#006644; font-weight:500;">VPA (Payee ID):</span><br>
-                <span style="background:rgba(0,0,0,0.1); padding:4px 8px; border-radius:4px; font-family:var(--font-mono);">{{ upi_details.vpa }}</span>
+                <span style="color:#006644; font-weight:500;">VPA <bold>(Payee ID):</bold></span><br>
+                <span style="background:rgba(0,0,0,0.1); padding:4px 8px; border-radius:4px; font-family:var(--font-mono);"><strong>{{ upi_details.vpa }}</strong></span>
             </div>
             <div>
                 <span style="color:#006644; font-weight:500;">Payee Name:</span><br>
@@ -112,7 +112,7 @@
             {% endif %}
         </div>
         <div style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(0,170,119,0.3); font-size:12px; color:#006644; font-weight:500;">
-            ✅ <strong>Legitimate UPI link. Double-check VPA, name & amount match your expected payee before authorizing payment in UPI app!</strong>
+            <strong>UPI link. Double-check VPA, name & amount match your expected payee before authorizing payment in UPI app!</strong>
         </div>
     </div>
     {% endif %}
@@ -324,7 +324,7 @@
 
     <!-- ══════════════════════════════════════════════════════════════════
          SECTION 6: SCAN LOG (Terminal Window)
-         ══════════════════════════════════════════════════════════════════ -->
+         ══════════════════════════════════════════════════════════════════ 
 
     <div class="section">
         <div class="section-header">
@@ -337,7 +337,7 @@
             <p data-time="[00:00]">No log entries.</p>
             {% endfor %}
         </div>
-    </div>
+    </div> -->
 
 
     <!-- ══════════════════════════════════════════════════════════════════

@@ -1,11 +1,12 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CyberQR Defense — QR Phishing Detection System</title>
-    
+
     <!-- jsQR for live QR scanning -->
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
@@ -13,6 +14,7 @@
     <link rel="stylesheet" href="{% static 'scanner/css/home.css' %}">
 
 </head>
+
 <body>
 
     <!-- ╔══════════════════════════════════════════════╗
@@ -46,7 +48,7 @@
                 <span>|</span>
                 <span id="clock"></span>
             </div>
-        
+
         </header>
 
         <!-- ── Scanner Panel ── -->
@@ -54,12 +56,12 @@
 
             <!-- Title bar (like a terminal window) -->
             <div class="panel-titlebar">
-        
+
                 <div class="panel-titlebar-left">
                     <span>⬡</span>
                     <span>CYBERQR_SCANNER — READY</span>
                 </div>
-                <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);">PID:4096</div>
+                <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);"></div>
             </div>
 
             <div class="panel-body">
@@ -88,29 +90,33 @@
                     <!-- ── TAB 1: QR Upload ── -->
                     <div class="tab-content active" id="tab-qr">
                         <div class="drop-zone" id="dropZone">
-                            <input type="file" name="qr_image" id="qrFileInput" accept="image/*" style="display: none;" onchange="handleFileSelect(this)">
-                            
+                            <input type="file" name="qr_image" id="qrFileInput" accept="image/*" style="display: none;"
+                                onchange="handleFileSelect(this)">
+
                             <!-- Live QR scanner elements (hidden) -->
-                            <video id="qrVideo" style="display: none; width: 100%; height: 300px; object-fit: cover;"></video>
+                            <video id="qrVideo"
+                                style="display: none; width: 100%; height: 300px; object-fit: cover;"></video>
                             <canvas id="qrCanvas" style="display: none; width: 100%; height: 300px;"></canvas>
-                            <div id="qrScanOverlay" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: transparent; z-index: 10; pointer-events: none;">
+                            <div id="qrScanOverlay"
+                                style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: transparent; z-index: 10; pointer-events: none;">
                                 <!-- Professional scan frame (no status text per user request) -->
                                 <div class="scan-frame">
                                     <div class="scan-line"></div>
                                 </div>
 
                                 <!-- Detected URL overlay (kept for UX) -->
-                                <div id="detectedUrlOverlay" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 12px; text-align: center; max-width: 90%; font-size: 14px; z-index: 20;">
+                                <div id="detectedUrlOverlay"
+                                    style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 12px; text-align: center; max-width: 90%; font-size: 14px; z-index: 20;">
                                     <div style="margin-bottom: 12px; font-weight: bold;">QR Detected!</div>
                                     <div id="detectedUrl" style="word-break: break-all; margin-bottom: 12px;"></div>
                                     <div style="color: var(--scan-primary);">Analyzing phishing risk...</div>
                                 </div>
                             </div>
 
- 
-                             <span class="drop-icon">⬡</span>
-                             <h3>Drop QR Code Here</h3>
-                             <p>or use buttons below</p>
+
+                            <span class="drop-icon">⬡</span>
+                            <h3>Drop QR Code Here</h3>
+                            <p>or use buttons below</p>
                             <p>Supported: PNG, JPG, JPEG, GIF, BMP, WebP, Camera</p>
                             <div class="file-name" id="fileName"></div>
                             <!-- Browse & Camera buttons inside drop-zone -->
@@ -133,12 +139,9 @@
                             </label>
                             <div class="url-input-wrapper">
                                 <span class="url-icon">🔗</span>
-                                <input type="text"
-                                       name="url"
-                                       id="urlInput"
-                                       placeholder="https://example.com or paste any suspicious URL..."
-                                       autocomplete="off"
-                                       spellcheck="false">
+                                <input type="text" name="url" id="urlInput"
+                                    placeholder="https://example.com or paste any suspicious URL..." autocomplete="off"
+                                    spellcheck="false">
                             </div>
                         </div>
                     </div>
@@ -181,7 +184,7 @@
         <!-- ── Footer ── -->
         <footer class="footer">
             <p>CyberQR Defense &copy; 2026</p>
-            
+
         </footer>
 
     </div><!-- end page-wrapper -->
@@ -244,7 +247,7 @@
             const canvas = document.getElementById('qrCanvas');
             const overlay = document.getElementById('qrScanOverlay');
             const dropZone = document.getElementById('dropZone');
-            
+
             // Clear previous
             document.getElementById('qrFileInput').value = '';
             document.getElementById('fileName').textContent = '';
@@ -252,13 +255,13 @@
             overlay.style.display = 'block';
             video.style.display = 'block';
             canvas.style.display = 'block';
-            
-            
+
+
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 video.srcObject = stream;
                 video.play();
-                
+
                 scanning = true;
                 scanLoop();
             } catch (err) {
@@ -273,17 +276,17 @@
 
         function scanLoop() {
             if (!scanning) return;
-            
+
             const video = document.getElementById('qrVideo');
             const canvas = document.getElementById('qrCanvas');
             const ctx = canvas.getContext('2d');
-            
+
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                
+
                 const code = jsQR(imageData.data, imageData.width, imageData.height);
                 if (code) {
                     const url = code.data.trim();
@@ -303,7 +306,7 @@
                     }
                 }
             }
-            
+
             animationId = requestAnimationFrame(scanLoop);
         }
 
@@ -311,16 +314,16 @@
         function stopLiveScan() {
             scanning = false;
             if (animationId) cancelAnimationFrame(animationId);
-            
+
             const video = document.getElementById('qrVideo');
             const overlay = document.getElementById('qrScanOverlay');
             const canvas = document.getElementById('qrCanvas');
             const dropZone = document.getElementById('dropZone');
-            
+
             if (video.srcObject) {
                 video.srcObject.getTracks().forEach(track => track.stop());
             }
-            
+
             video.style.display = 'none';
             canvas.style.display = 'none';
             overlay.style.display = 'none';
@@ -332,16 +335,16 @@
         // ── Drag and drop support ──────────────────────────────────────
         const dropZone = document.getElementById('dropZone');
 
-        dropZone.addEventListener('dragover', function(e) {
+        dropZone.addEventListener('dragover', function (e) {
             e.preventDefault();
             this.classList.add('dragover');
         });
 
-        dropZone.addEventListener('dragleave', function() {
+        dropZone.addEventListener('dragleave', function () {
             this.classList.remove('dragover');
         });
 
-        dropZone.addEventListener('drop', function(e) {
+        dropZone.addEventListener('drop', function (e) {
             e.preventDefault();
             this.classList.remove('dragover');
             const files = e.dataTransfer.files;
@@ -354,7 +357,7 @@
         // ── Show loading animation on form submit ──────────────────────
         function startScan() {
             // Small delay to let the DOM update
-            setTimeout(function() {
+            setTimeout(function () {
                 document.getElementById('loadingOverlay').classList.add('show');
                 document.getElementById('progressContainer').classList.add('show');
             }, 100);
@@ -366,18 +369,18 @@
             if (themeToggle) {
                 const html = document.documentElement;
                 const currentTheme = localStorage.getItem('theme') || 'light';
-                
+
                 // Apply saved theme on load
                 html.setAttribute('data-theme', currentTheme);
                 if (currentTheme === 'dark') {
                     themeToggle.classList.add('dark');
                 }
-                
+
                 // Toggle handler
                 themeToggle.addEventListener('click', () => {
                     const isDark = html.getAttribute('data-theme') === 'dark';
                     const newTheme = isDark ? 'light' : 'dark';
-                    
+
                     html.setAttribute('data-theme', newTheme);
                     localStorage.setItem('theme', newTheme);
                     themeToggle.classList.toggle('dark');
@@ -386,7 +389,7 @@
         })();
 
         // Auto-submit validation
-        document.getElementById('scanForm').addEventListener('submit', function(e) {
+        document.getElementById('scanForm').addEventListener('submit', function (e) {
             const qrFileInput = document.getElementById('qrFileInput');
             const cameraInput = document.getElementById('cameraInput');
             const qrFile = qrFileInput.files[0] || cameraInput.files[0];
@@ -410,4 +413,5 @@
     </script>
 
 </body>
+
 </html>

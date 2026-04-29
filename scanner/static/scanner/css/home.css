@@ -432,7 +432,7 @@ input[type="url"],
 input[type="text"] {
     width: 100%;
     padding: 14px 14px 14px 42px;
-    background: rgba(0,0,0,0.5);
+    background: rgba(205, 12, 12, 0);
     border: 1px solid var(--border);
     color: var(--text-main);
     font-family: var(--font-main);

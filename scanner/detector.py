@@ -120,7 +120,7 @@ def analyze_url(url: str) -> dict:
         score += 25
         checks.append({'feature': 'HTTPS Status', 'result': 'HTTP', 'risk': 'SUSPICIOUS', 'icon': '⚠', 'description': 'No encryption — dangerous for login/payment pages.'})
         logs.append("[WARNING] HTTP detected (+25 points)")
-    elif scheme == 'https':
+    elif scheme == 'https' or scheme=='upi':
         checks.append({'feature': 'HTTPS Status', 'result': 'HTTPS', 'risk': 'SAFE', 'icon': '✔', 'description': 'Encrypted connection.'})
         logs.append("HTTPS: SAFE")
     else:
